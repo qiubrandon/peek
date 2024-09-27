@@ -1,24 +1,84 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import io from 'socket.io-client';
 
-const socket = io.connect('http://localhost:3000'); // Connect to the server
+const socket = io.connect('http://localhost:8080'); // Connect to the server
 
 function App() {
-    const [screenStream, setScreenStream] = useState(null);
-    const videoRef = useRef(null);
+    const [peerConnection, setPeerConnection] = useState(null);
+    const [remoteStream, setRemoteStream] = useState(null)
+    const [stream, setScreenStream] = useState(null)
+    const localRef = useRef(null);
+    const remoteRef = useRef(null);
+    const iceServers = {
+      iceServers: [{
+        urls: 'stun:stun.l.google.com:19302'
+      }]
+    }
 
+    // establish peer
+    useEffect(()=>{
+      const pc = new RTCPeerConnection(iceServers); // create peer
+      // send out ice candidate from client
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          socket.emit('ice-candidate', event.candidate); // send candidate to signaling server
+        }
+      }
+      pc.ontrack = (event) => {
+        setRemoteStream(event.streams[0])
+      }
+      setPeerConnection(pc);
+      return () => {
+        pc.close()
+      }
+    },[])
+
+    useEffect(()=>{
+      // handle on offer
+      socket.on('offer', async ({sdp,type}) => {
+        if (peerConnection){
+          console.log("Receiving offer!")
+          await peerConnection.setRemoteDescription(new RTCSessionDescription({sdp,type}))
+          const answer = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answer)
+          socket.emit('answer', {sdp:answer.sdp, type:answer.type})
+        }
+      })
+
+      socket.on('answer', async ({sdp,type})=>{
+        console.log("Received answer!")
+        if (peerConnection){
+          await peerConnection.setRemoteDescription(new RTCSessionDescription({sdp,type}));
+        }
+      })
+
+      socket.on('ice-candidate', async (candidate)=>{
+        if (peerConnection){
+          await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        }
+      })
+
+      return () => {
+        socket.off('offer')
+        socket.off('answer')
+        socket.off('ice-candidate')
+      }
+    },[peerConnection])
+
+    // function to start screen capture
     const startScreenCapture = async () => {
         try {
             const stream = await navigator.mediaDevices.getDisplayMedia({
                 video: true
             });
-            setScreenStream(stream);
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-            }
-
-            // Emit the screen stream through socket.io for signaling (expand this to send to peers)
-            socket.emit('screen-share', { streamId: stream.id });
+            localRef.current.srcObject = stream;
+            stream.getTracks().forEach(track => peerConnection.addTrack(track, stream))
+            const offer = await peerConnection.createOffer(); // yes.
+            await peerConnection.setLocalDescription(offer);
+            socket.emit('offer', {sdp: offer.sdp, type: offer.type});
+            // now it propagates through signaling server. 
+            // testing with same machine on different browsers.
+            console.log("Creating offer!")
 
         } catch (err) {
             console.error('Error capturing screen: ', err);
@@ -26,14 +86,17 @@ function App() {
     };
 
     return (
-        <div className="App">
-            <h1>React Screen Sharing App</h1>
-            <button onClick={startScreenCapture}>Start Screen Share</button>
-            <div>
-                <video ref={videoRef} autoPlay style={{ width: '80%', marginTop: '20px' }}></video>
-            </div>
-        </div>
-    );
+      <div>
+          <h1>Peek: Screen-sharing made simple!</h1>
+          <button onClick={startScreenCapture}>Start Screen Share</button>
+
+          <h2>Your Screen</h2>
+          <video ref={localRef} autoPlay style={{ width: '80%' }} />
+
+          <h2>Remote Screen</h2>
+          <video ref={remoteRef} autoPlay style={{ width: '80%' }} srcobject={remoteStream} />
+      </div>
+  );
 }
 
 export default App;

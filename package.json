@@ -1,11 +1,11 @@
 {
   "scripts": {
-  "start": "concurrently \"npm run server\" \"npm run client\"",
-  "server": "cd server && npm start",
-  "client": "cd client && npm start"
-}
-,
+    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && npm start",
+    "client": "cd client && cd client && npm start"
+  },
   "dependencies": {
+    "cors": "^2.8.5",
     "socket.io-client": "^4.8.0"
   },
   "devDependencies": {
