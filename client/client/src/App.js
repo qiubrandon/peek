@@ -25,7 +25,11 @@ function App() {
         }
       }
       pc.ontrack = (event) => {
-        setRemoteStream(event.streams[0])
+        console.log("Setting stream!")
+        if (remoteRef.current){
+          console.log("Remote reference is not null")
+          remoteRef.current.srcObject = event.streams[0]
+        }
       }
       setPeerConnection(pc);
       return () => {
@@ -53,6 +57,7 @@ function App() {
       })
 
       socket.on('ice-candidate', async (candidate)=>{
+        console.log("ICE Candidate added to connection")
         if (peerConnection){
           await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
         }
@@ -71,7 +76,9 @@ function App() {
             const stream = await navigator.mediaDevices.getDisplayMedia({
                 video: true
             });
-            localRef.current.srcObject = stream;
+            if (localRef.current){
+              localRef.current.srcObject = stream;
+            }
             stream.getTracks().forEach(track => peerConnection.addTrack(track, stream))
             const offer = await peerConnection.createOffer(); // yes.
             await peerConnection.setLocalDescription(offer);
@@ -94,7 +101,7 @@ function App() {
           <video ref={localRef} autoPlay style={{ width: '80%' }} />
 
           <h2>Remote Screen</h2>
-          <video ref={remoteRef} autoPlay style={{ width: '80%' }} srcobject={remoteStream} />
+          <video ref={remoteRef} autoPlay style={{ width: '80%' }}  />
       </div>
   );
 }
