@@ -1,23 +1,32 @@
 const express = require('express');
 const http = require('http');
-const sckt = require('socket.io');
+const socketIo = require('socket.io');
 const path = require('path');
 
 const app = express();
-const server = http.createServer(app)
-const io = sckt(server);
+const server = http.createServer(app);
+const io = socketIo(server);
 
-app.use(express.static(path.join(__dirname, '../client')));
+// Serve React static files
+if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(path.join(__dirname, '../client/build')));
 
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+    });
+}
+
+// WebSocket connections
 io.on('connection', (socket) => {
     console.log('A user connected');
+
     socket.on('disconnect', () => {
         console.log('User disconnected');
     });
 
-    // webrtc connections handler
-    socket.on('signal', (data) => {
-        socket.broadcast.emit('signal', data);
+    socket.on('screen-share', (data) => {
+        // Handle the screen share signaling logic
+        socket.broadcast.emit('screen-share', data);
     });
 });
 

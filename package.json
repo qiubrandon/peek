@@ -1,0 +1,14 @@
+{
+  "scripts": {
+  "start": "concurrently \"npm run server\" \"npm run client\"",
+  "server": "cd server && npm start",
+  "client": "cd client && npm start"
+}
+,
+  "dependencies": {
+    "socket.io-client": "^4.8.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}
