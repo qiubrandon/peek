@@ -3,6 +3,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 const cors = require('cors')
+// const {nanoid} = require('nanoid');
 
 const app = express();
 const server = http.createServer(app);
@@ -31,25 +32,39 @@ if (process.env.NODE_ENV === 'production') {
 io.on('connection', (socket) => {
     console.log('A user connected');
     
-    socket.on('offer', ({sdp, type})=>{
-        socket.broadcast.emit('offer', {sdp,type});
+    socket.on('offer', (data)=>{ // data = {sdp: answer.sdp, roomID}
+        socket.to(data.roomID).emit('offer', data);
     })
 
-    socket.on('answer', ({sdp,type})=>{
-        socket.broadcast.emit('answer',{sdp,type})
+    socket.on('answer', (data)=>{
+        socket.to(data.roomID).emit('answer',data)
     })
 
     socket.on('disconnect', () => {
         console.log('User disconnected');
     });
 
-    socket.on('ice-candidate', (candidate)=>{
-        socket.broadcast.emit('ice-candidate', candidate)
+    socket.on('ice-candidate', (data)=>{
+        socket.to(data.roomID).emit('ice-candidate', data)
     })
 
-    socket.on('screen-share', (data) => {
-        socket.broadcast.emit('screen-share', data); // EMITS TO ALL (EXCEPT SENDER)
-    });
+    socket.on('stream-stopped', (data)=>{
+        socket.to(data.roomID).emit('stream-stopped')
+    })
+
+    socket.on('join-room', (roomID)=>{
+        socket.join(roomID)
+        console.log(`User joined room: ${roomID}`)
+    })
+
+    socket.on('create-room', ()=>{
+        const roomID = nanoid(7)
+        socket.emit('room-created',roomID)
+    })
+
+    // socket.on('screen-share', (data) => {
+    //     socket.broadcast.emit('screen-share', data); // EMITS TO ALL (EXCEPT SENDER)
+    // });
 });
 
 const PORT = process.env.PORT || 8080;
