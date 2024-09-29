@@ -4,27 +4,8 @@ import io from 'socket.io-client';
 const url = process.env.REACT_APP_EC2 || "http://localhost:8080";
 console.log("URL", url)
 const socket = io.connect(url); // Connect to the server
-//const ICE_SERVERS = JSON.parse(process.env.REACT_APP_ICESERVERS)
-const ICE_SERVERS = [
-  {
-    urls: 'stun:global.stun.twilio.com:3478'
-  },
-  {
-    username: 'b8bc03554387b3010378a398c18f3c2bfd475bd1d1372c2d3f85fbf88728369f',
-    urls: 'turn:global.turn.twilio.com:3478?transport=udp',
-    credential: '3JJCFgih1gwV9NDOR38B53d7M0l+gFmU4YmiMOnXm18='
-  },
-  {
-    username: 'b8bc03554387b3010378a398c18f3c2bfd475bd1d1372c2d3f85fbf88728369f',
-    urls: 'turn:global.turn.twilio.com:3478?transport=tcp',
-    credential: '3JJCFgih1gwV9NDOR38B53d7M0l+gFmU4YmiMOnXm18='
-  },
-  {
-    username: 'b8bc03554387b3010378a398c18f3c2bfd475bd1d1372c2d3f85fbf88728369f',
-    urls: 'turn:global.turn.twilio.com:443?transport=tcp',
-    credential: '3JJCFgih1gwV9NDOR38B53d7M0l+gFmU4YmiMOnXm18='
-  }
-]
+const ICE_SERVERS = JSON.parse(process.env.REACT_APP_ICESERVERS)
+//const ICE_SERVERS = 
 
 function App() {
     const [peerConnection, setPeerConnection] = useState(null);
@@ -34,9 +15,16 @@ function App() {
     const localRef = useRef(null);
     const remoteRef = useRef(null);
     const roomInput = useRef(null);
+    const roomIDRef = useRef(roomID);
     const iceServers = {
       iceServers: ICE_SERVERS
     }
+
+    // prevent weird errors with roomid state
+    useEffect(() => {
+      roomIDRef.current = roomID; // Update the ref whenever roomID changes
+    }, [roomID]);
+
 
     // establish peer
     useEffect(()=>{
@@ -44,17 +32,18 @@ function App() {
       // send out ice candidate from client
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          console.log("Received ICE candidate!")
-          socket.emit('ice-candidate', {candidate: event.candidate, roomID: roomID}); // send candidate to signaling server
+         // console.log("Received ICE candidate!")
+          //console.log("ICE CANDIDATE ROOMID",roomIDRef.current)
+          socket.emit('ice-candidate', {candidate: event.candidate, roomID: roomIDRef.current}); // send candidate to signaling server
         }
       }
-      pc.ontrack = (event) => {
-        console.log("Setting stream!")
+      pc.ontrack = async (event) => {
 
         //const rS = event.streams[0];
+        await waitForSignalingState(pc);
         if (remoteRef.current && pc.signalingState === 'stable'){
          // console.log("Remote reference is not null")
-          console.log("Media Stream", event.streams[0])
+          //console.log("Media Stream", event.streams[0])
           remoteRef.current.srcObject = event.streams[0]
         }
       setRemoteStream(event.streams[0])
@@ -113,9 +102,10 @@ function App() {
       })
 
       socket.on('ice-candidate', async (candidate)=>{
-        console.log("ICE Candidate added to connection")
+    //    console.log("ICE Candidate added to connection")
         if (peerConnection){
           await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+          console.log("New IceCandidate added")
         }
       })
 
@@ -131,6 +121,7 @@ function App() {
 
       socket.on('room-created', (roomID)=>{
         setRoomID(roomID)
+        roomInput.current.value = roomID
         console.log("Created and join room",roomID)
       })
 
@@ -144,6 +135,8 @@ function App() {
         socket.off('answer')
         socket.off('ice-candidate')
         socket.off('stream-stopped')
+        socket.off('room-created')
+        socket.off('join-confirmation')
       }
     },[peerConnection])
 
@@ -293,7 +286,6 @@ function App() {
     }
 
     const createRoom = () => {
-      console.log("Create room")
       socket.emit('create-room');
     }
 
@@ -309,7 +301,7 @@ function App() {
           <video ref={localRef} autoPlay muted style={{ width: '80%' }} />
 
           <h2>Remote Screen</h2>  
-          <video ref={remoteRef} autoPlay muted={true} style={{ width: '80%' }}  />
+          <video ref={remoteRef} autoPlay playsInline muted={true} style={{ width: '80%' }}  />
       </div>
   );
 }
