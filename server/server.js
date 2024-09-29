@@ -63,10 +63,12 @@ io.on('connection', (socket) => {
     });
 
     socket.on('ice-candidate', (data)=>{
+        console.log("Ice candidate")
         socket.to(data.roomID).emit('ice-candidate', data.candidate)
     })
 
     socket.on('stream-stopped', (data)=>{
+        console.log("Stream stopped on room",data.roomID)
         socket.to(data.roomID).emit('stream-stopped')
     })
 

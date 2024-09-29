@@ -1,9 +1,30 @@
 import React, { useState, useRef, useEffect } from 'react';
 import io from 'socket.io-client';
 
-const url = process.env.REACT_APP_TUNNEL_URL || "http://localhost:8080";
+const url = process.env.REACT_APP_EC2 || "http://localhost:8080";
 console.log("URL", url)
 const socket = io.connect(url); // Connect to the server
+//const ICE_SERVERS = JSON.parse(process.env.REACT_APP_ICESERVERS)
+const ICE_SERVERS = [
+  {
+    urls: 'stun:global.stun.twilio.com:3478'
+  },
+  {
+    username: 'b8bc03554387b3010378a398c18f3c2bfd475bd1d1372c2d3f85fbf88728369f',
+    urls: 'turn:global.turn.twilio.com:3478?transport=udp',
+    credential: '3JJCFgih1gwV9NDOR38B53d7M0l+gFmU4YmiMOnXm18='
+  },
+  {
+    username: 'b8bc03554387b3010378a398c18f3c2bfd475bd1d1372c2d3f85fbf88728369f',
+    urls: 'turn:global.turn.twilio.com:3478?transport=tcp',
+    credential: '3JJCFgih1gwV9NDOR38B53d7M0l+gFmU4YmiMOnXm18='
+  },
+  {
+    username: 'b8bc03554387b3010378a398c18f3c2bfd475bd1d1372c2d3f85fbf88728369f',
+    urls: 'turn:global.turn.twilio.com:443?transport=tcp',
+    credential: '3JJCFgih1gwV9NDOR38B53d7M0l+gFmU4YmiMOnXm18='
+  }
+]
 
 function App() {
     const [peerConnection, setPeerConnection] = useState(null);
@@ -14,9 +35,7 @@ function App() {
     const remoteRef = useRef(null);
     const roomInput = useRef(null);
     const iceServers = {
-      iceServers: [{
-        urls: 'stun:stun.l.google.com:19302'
-      }]
+      iceServers: ICE_SERVERS
     }
 
     // establish peer
