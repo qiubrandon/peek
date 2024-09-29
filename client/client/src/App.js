@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import io from 'socket.io-client';
 
 const url = process.env.REACT_APP_TUNNEL_URL || "http://localhost:8080";
+console.log("URL", url)
 const socket = io.connect(url); // Connect to the server
 
 function App() {
@@ -24,19 +25,19 @@ function App() {
       // send out ice candidate from client
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          socket.emit('ice-candidate', event.candidate); // send candidate to signaling server
+          console.log("Received ICE candidate!")
+          socket.emit('ice-candidate', {candidate: event.candidate, roomID: roomID}); // send candidate to signaling server
         }
       }
       pc.ontrack = (event) => {
         console.log("Setting stream!")
 
         //const rS = event.streams[0];
-        if (remoteRef.current){
+        if (remoteRef.current && pc.signalingState === 'stable'){
          // console.log("Remote reference is not null")
-          //console.log("Media Stream", event.streams[0])
+          console.log("Media Stream", event.streams[0])
           remoteRef.current.srcObject = event.streams[0]
         }
-        
       setRemoteStream(event.streams[0])
       }
       pc.oniceconnectionstatechange = () => {
@@ -72,17 +73,18 @@ function App() {
 
     useEffect(()=>{
       // handle on offer
-      socket.on('offer', async ({sdp,type}) => {
+      socket.on('offer', async ({sdp,roomID,type}) => {
         if (peerConnection.signalingState === 'stable' || peerConnection.signalingState === 'have-remote-offer'){
           console.log("Receiving offer!")
+          console.log("Offer id",roomID)
           await peerConnection.setRemoteDescription(new RTCSessionDescription({sdp,type}))
           const answer = await peerConnection.createAnswer();
           await peerConnection.setLocalDescription(answer)
-          socket.emit('answer', {sdp:answer.sdp, type:answer.type})
+          socket.emit('answer', {sdp:answer.sdp, roomID: roomID, type:answer.type})
         }
       })
 
-      socket.on('answer', async ({sdp,type})=>{
+      socket.on('answer', async ({sdp,roomID,type})=>{
         console.log("Received answer!")
         if (peerConnection.signalingState === 'have-local-offer'){
           await peerConnection.setRemoteDescription(new RTCSessionDescription({sdp,type}));
@@ -108,8 +110,14 @@ function App() {
         }
       })
 
-      socket.on('created-room', (roomID)=>{
-        console.log("Generated ID",roomID)
+      socket.on('room-created', (roomID)=>{
+        setRoomID(roomID)
+        console.log("Created and join room",roomID)
+      })
+
+      socket.on('join-confirmation', ({status, connected, id})=>{
+        console.log(`Status: ${status}\n Connected: ${connected} on ${id}`)
+        setRoomID(id)
       })
 
       return () => {
@@ -120,10 +128,7 @@ function App() {
       }
     },[peerConnection])
 
-    // useEffect(()=>{
 
-    // },[roomID])
-    
     // for existing rtc connection
   //   const shareMedia = async () => {
   //     const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
@@ -217,6 +222,7 @@ function App() {
             stream.getTracks().forEach(track => peerConnection.addTrack(track, stream))
             const offer = await peerConnection.createOffer(); // yes.
             await peerConnection.setLocalDescription(offer);
+            console.log("Screen capture id", roomID)
             socket.emit('offer', {sdp: offer.sdp, roomID: roomID,type: offer.type});
             await waitForIceConnection(peerConnection);
 
@@ -257,12 +263,18 @@ function App() {
 
     const joinRoom = () => {
       if (roomInput.current){
-        setRoomID(roomInput.current.value)
-        console.log("Setting value to", roomInput.current.value)
+        const input = roomInput.current.value;
+        if (input && input.length == 7){
+          socket.emit('join-room', input)
+        } else {
+          console.log("Invalid input!")
+        }
+        //console.log("Setting value to", roomInput.current.value)
       }
     }
 
     const createRoom = () => {
+      console.log("Create room")
       socket.emit('create-room');
     }
 
@@ -278,7 +290,7 @@ function App() {
           <video ref={localRef} autoPlay muted style={{ width: '80%' }} />
 
           <h2>Remote Screen</h2>  
-          <video ref={remoteRef} autoPlay muted style={{ width: '80%' }}  />
+          <video ref={remoteRef} autoPlay muted={true} style={{ width: '80%' }}  />
       </div>
   );
 }

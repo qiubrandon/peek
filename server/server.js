@@ -3,19 +3,36 @@ const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 const cors = require('cors')
+require('dotenv').config();  // Load environment variables
+
 // const {nanoid} = require('nanoid');
 
 const app = express();
 const server = http.createServer(app);
+
 // FOR DEVELOPMENT PURPOSES ONLY
+const url = process.env.TUNNEL_URL
+const allowedOrigins = process.env.NODE_ENV === 'production' ? 
+    [url] : 
+    ["http://localhost:3000"];
+
 const io = socketIo(server, {
     cors: {
-        origin: "http://localhost:3000", // Allow requests from this origin
+        origin: allowedOrigins, // Allow requests from this origin
         methods: ["GET", "POST"],
         allowedHeaders: ["my-custom-header"],
         credentials: true
     }
 });
+
+function genID(size = 21) {
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let id = '';
+    for (let i = 0; i < size; i++) {
+      id += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+    }
+    return id;
+}
 
 app.use(cors())
 
@@ -32,7 +49,8 @@ if (process.env.NODE_ENV === 'production') {
 io.on('connection', (socket) => {
     console.log('A user connected');
     
-    socket.on('offer', (data)=>{ // data = {sdp: answer.sdp, roomID}
+    socket.on('offer', (data)=>{ // data = {sdp: answer.sdp, type, roomID}
+        console.log("Offer sent on room",data.roomID)
         socket.to(data.roomID).emit('offer', data);
     })
 
@@ -45,7 +63,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('ice-candidate', (data)=>{
-        socket.to(data.roomID).emit('ice-candidate', data)
+        socket.to(data.roomID).emit('ice-candidate', data.candidate)
     })
 
     socket.on('stream-stopped', (data)=>{
@@ -53,12 +71,24 @@ io.on('connection', (socket) => {
     })
 
     socket.on('join-room', (roomID)=>{
-        socket.join(roomID)
-        console.log(`User joined room: ${roomID}`)
+        const room = io.of("/").adapter.rooms.get(roomID)
+        console.log("A user is attempting to join room",roomID)
+        if (room){ // room exists
+            socket.join(roomID)
+            socket.emit('join-confirmation', {status: "ok", connected: null, id: roomID})
+            console.log(`User joined room: ${roomID}`)
+        }
+        else{
+            console.log(`Room ${roomID} does not exist.`)
+            socket.emit('join-confirmation', {status: "failed", connected: null, id: roomID})
+        }
+        // console.log("2. All rooms:", io.of("/").adapter.rooms)
+
     })
 
     socket.on('create-room', ()=>{
-        const roomID = nanoid(7)
+        let roomID = genID(7)
+        socket.join(roomID)
         socket.emit('room-created',roomID)
     })
 
