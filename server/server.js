@@ -34,7 +34,7 @@ async function genID() {
     // }
     // return id;
     const a = ["/random/noun", "/random/adjective","/random/animal"]
-    const selection = (Math.random() * 3).floor()
+    const selection = Math.floor((Math.random() * 3))
     return await fetch(`${idAPI}${a[selection]}`)
 }
 
