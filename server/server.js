@@ -11,7 +11,8 @@ const app = express();
 const server = http.createServer(app);
 
 // FOR DEVELOPMENT PURPOSES ONLY
-const url = process.env.TUNNEL_URL
+//const url = process.env.TUNNEL_URL
+const idAPI = process.env.API_URL
 const allowedOrigins = process.env.NODE_ENV === 'production' ? 
     [url] : 
     ["http://localhost:3000"];
@@ -25,13 +26,16 @@ const io = socketIo(server, {
     }
 });
 
-function genID(size = 21) {
-    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let id = '';
-    for (let i = 0; i < size; i++) {
-      id += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
-    }
-    return id;
+async function genID() {
+    // const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    // let id = '';
+    // for (let i = 0; i < size; i++) {
+    //   id += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+    // }
+    // return id;
+    const a = ["/random/noun", "/random/adjective","/random/animal"]
+    const selection = (Math.random() * 3).floor()
+    return await fetch(`${idAPI}${a[selection]}`)
 }
 
 app.use(cors())
@@ -73,6 +77,16 @@ io.on('connection', (socket) => {
     })
 
     socket.on('join-room', (roomID)=>{
+        const rooms = Object.keys(socket.rooms);
+
+        // Leave all rooms except the socket's own room (the default)
+        rooms.forEach((room) => {
+            if (room !== socket.id) {
+                socket.leave(room);
+                console.log(`User left room: ${room}`);
+            }
+        });
+
         const room = io.of("/").adapter.rooms.get(roomID)
         console.log("A user is attempting to join room",roomID)
         if (room){ // room exists
@@ -88,10 +102,15 @@ io.on('connection', (socket) => {
 
     })
 
-    socket.on('create-room', ()=>{
-        let roomID = genID(7)
+    socket.on('create-room', async ()=>{
+        let roomID = await genID()
         socket.join(roomID)
         socket.emit('room-created',roomID)
+    })
+
+    socket.on('display', ()=>{
+        const rooms = io.of("/").adapter.rooms
+        console.log(rooms)
     })
 
     // socket.on('screen-share', (data) => {

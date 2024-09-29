@@ -15,6 +15,7 @@ function App() {
     const localRef = useRef(null);
     const remoteRef = useRef(null);
     const roomInput = useRef(null);
+    const roomDisplay = useRef(null);
     const roomIDRef = useRef(roomID);
     const iceServers = {
       iceServers: ICE_SERVERS
@@ -23,6 +24,7 @@ function App() {
     // prevent weird errors with roomid state
     useEffect(() => {
       roomIDRef.current = roomID; // Update the ref whenever roomID changes
+      roomDisplay.current.innerText = `Room: ${roomID}`
     }, [roomID]);
 
 
@@ -121,7 +123,7 @@ function App() {
 
       socket.on('room-created', (roomID)=>{
         setRoomID(roomID)
-        roomInput.current.value = roomID
+        // roomInput.current.value = roomID
         console.log("Created and join room",roomID)
       })
 
@@ -292,6 +294,7 @@ function App() {
     return (
       <div>
           <h1>Peek: Screen-sharing made simple!</h1>
+          <p ref={roomDisplay}>Currently not in a room.</p>
           <button onClick={startScreenCapture}>Start Screen Share</button>
           <button onClick={stopCapture}>Stop Screen Share</button>
           <input ref={roomInput}></input>
