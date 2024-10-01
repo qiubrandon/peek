@@ -77,6 +77,13 @@ io.on('connection', (socket) => {
     })
 
     socket.on('disconnect', () => {
+        const rooms = Array.from(socket.rooms).filter(room => room !== socket.id); 
+    
+    // For each room, notify other users that this socket has left
+        rooms.forEach((roomID) => {
+            socket.broadcast.to(roomID).emit('user-left', { message: `A user has left room ${roomID}` });
+        });
+
         console.log('User disconnected');
     });
 

@@ -156,6 +156,13 @@ function App() {
         }
       })
 
+      socket.on('user-left',()=>{
+        toast.info("Peer has left the room...")
+        if (remoteRef.current){
+          remoteRef.current.srcObject = null;
+        }
+      })
+
       return () => {
         socket.off('offer')
         socket.off('answer')
