@@ -33,9 +33,11 @@ async function genID() {
     //   id += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
     // }
     // return id;
-    const a = ["/random/noun", "/random/adjective","/random/animal"]
-    const selection = Math.floor((Math.random() * 3))
-    return await fetch(`${idAPI}${a[selection]}`)
+    const selection = Math.floor((Math.random() * 1000))
+    const response = await fetch(`${idAPI}`)
+    let data = await response.json()
+    data[0] = data[0].replace(/\s+/g, '');
+    return `${data[0]}${selection}`
 }
 
 app.use(cors())
@@ -52,6 +54,17 @@ if (process.env.NODE_ENV === 'production') {
 // WebSocket connections
 io.on('connection', (socket) => {
     console.log('A user connected');
+    const leaveAll = (roomID) => {
+        const rooms = socket.rooms
+       // console.log("ROOMS:",rooms)
+        // Leave all rooms except the socket's own room (the default)
+        rooms.forEach((room) => {
+            if (room !== roomID) {
+                socket.leave(room);
+                console.log(`User left room: ${room}`);
+            }
+        });
+    }
     
     socket.on('offer', (data)=>{ // data = {sdp: answer.sdp, type, roomID}
         console.log("Offer sent on room",data.roomID)
@@ -59,6 +72,7 @@ io.on('connection', (socket) => {
     })
 
     socket.on('answer', (data)=>{
+        console.log("Socket answered!")
         socket.to(data.roomID).emit('answer',data)
     })
 
@@ -67,7 +81,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('ice-candidate', (data)=>{
-        console.log("Ice candidate")
+        //console.log("Ice candidate")
         socket.to(data.roomID).emit('ice-candidate', data.candidate)
     })
 
@@ -77,26 +91,23 @@ io.on('connection', (socket) => {
     })
 
     socket.on('join-room', (roomID)=>{
-        const rooms = Object.keys(socket.rooms);
-
-        // Leave all rooms except the socket's own room (the default)
-        rooms.forEach((room) => {
-            if (room !== socket.id) {
-                socket.leave(room);
-                console.log(`User left room: ${room}`);
-            }
-        });
-
+        //leaveAll(roomID)
         const room = io.of("/").adapter.rooms.get(roomID)
-        console.log("A user is attempting to join room",roomID)
+        //console.log("A user is attempting to join room",roomID)
+        //console.log("Room size: ", room.size)
         if (room){ // room exists
-            socket.join(roomID)
-            socket.emit('join-confirmation', {status: "ok", connected: null, id: roomID})
-            console.log(`User joined room: ${roomID}`)
+            if (room.size >= 2){
+                console.log(`User is trying to join room ${roomID} but it is full!`)
+                socket.emit('join-confirmation', {status: "full", message:"Room is full!",id: roomID})
+            } else {
+                socket.join(roomID)
+                socket.emit('join-confirmation', {status: "ok", message:"Successfully joined room!" ,id: roomID})
+                console.log(`User joined room: ${roomID}`)
+            }
         }
         else{
             console.log(`Room ${roomID} does not exist.`)
-            socket.emit('join-confirmation', {status: "failed", connected: null, id: roomID})
+            socket.emit('join-confirmation', {status: "failed", message: 'Room does not exist!', id: roomID})
         }
         // console.log("2. All rooms:", io.of("/").adapter.rooms)
 
@@ -105,12 +116,19 @@ io.on('connection', (socket) => {
     socket.on('create-room', async ()=>{
         let roomID = await genID()
         socket.join(roomID)
+        //leaveAll(roomID) // leave all previous
         socket.emit('room-created',roomID)
     })
 
     socket.on('display', ()=>{
         const rooms = io.of("/").adapter.rooms
         console.log(rooms)
+    })
+
+    socket.on('clean-user', (roomID)=>{
+        // removes user from all rooms that are not their current roomID.
+        leaveAll(roomID);
+        console.log("Cleaning user",socket.id)
     })
 
     // socket.on('screen-share', (data) => {

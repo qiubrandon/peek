@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import io from 'socket.io-client';
+import { ToastContainer, toast } from 'react-toastify';
+
 
 const url = process.env.REACT_APP_EC2 || "http://localhost:8080";
 console.log("URL", url)
@@ -20,14 +22,14 @@ function App() {
     const iceServers = {
       iceServers: ICE_SERVERS
     }
-
+    //console.log("1")
     // prevent weird errors with roomid state
     useEffect(() => {
       roomIDRef.current = roomID; // Update the ref whenever roomID changes
       roomDisplay.current.innerText = `Room: ${roomID}`
     }, [roomID]);
 
-
+    //console.log('2')
     // establish peer
     useEffect(()=>{
       const pc = new RTCPeerConnection(iceServers); // create peer
@@ -59,7 +61,7 @@ function App() {
           }
         }
     };
-    
+    //console.log("3")
     pc.onsignalingstatechange = () => {
         console.log("Signaling State:", pc.signalingState);
     };
@@ -79,7 +81,7 @@ function App() {
         pc.close()
       }
     },[])
-
+//console.log('4')
 
     useEffect(()=>{
       // handle on offer
@@ -98,6 +100,7 @@ function App() {
         console.log("Received answer!")
         if (peerConnection.signalingState === 'have-local-offer'){
           await peerConnection.setRemoteDescription(new RTCSessionDescription({sdp,type}));
+          console.log("Setting remote description!")
         } else {
           console.warn("Cannot accept answer, signaling state isn't 'have-local-offer', instead is", peerConnection.signalingState)
         }
@@ -121,15 +124,25 @@ function App() {
         }
       })
 
-      socket.on('room-created', (roomID)=>{
+      socket.on('room-created', async (roomID)=>{
         setRoomID(roomID)
         // roomInput.current.value = roomID
-        console.log("Created and join room",roomID)
+        await waitForSignalingState(peerConnection)
+        await waitForIceConnection(peerConnection)
+        socket.emit('clean-user', roomID)
+       // console.log("Created and join room",roomID)
       })
 
-      socket.on('join-confirmation', ({status, connected, id})=>{
-        console.log(`Status: ${status}\n Connected: ${connected} on ${id}`)
-        setRoomID(id)
+      socket.on('join-confirmation',async ({status, message, id})=>{
+        if (status == "ok"){
+          setRoomID(id)
+          await waitForSignalingState(peerConnection)
+          await waitForIceConnection(peerConnection)
+          socket.emit('clean-user', id)
+        }
+        else{
+          console.warn(`Error: ${message}`)
+        }
       })
 
       return () => {
@@ -275,12 +288,19 @@ function App() {
       console.log("Stopping share!")
     }
 
+    // developmental purposes: display all rooms
+    const display = () =>{
+      socket.emit("display")
+    }
+
+
     const joinRoom = () => {
       if (roomInput.current){
         const input = roomInput.current.value;
-        if (input && input.length == 7){
+        if (input){
           socket.emit('join-room', input)
         } else {
+          toast.error("You need to enter a room id!")
           console.log("Invalid input!")
         }
         //console.log("Setting value to", roomInput.current.value)
@@ -290,7 +310,7 @@ function App() {
     const createRoom = () => {
       socket.emit('create-room');
     }
-
+    //console.log('5')
     return (
       <div>
           <h1>Peek: Screen-sharing made simple!</h1>
@@ -300,6 +320,7 @@ function App() {
           <input ref={roomInput}></input>
           <button onClick={joinRoom}>Join Room</button>
           <button onClick={createRoom}>Create Room</button>
+          <button onClick={display}>DISPLAY ALL ROOMS</button>
           <h2>Your Screen</h2>
           <video ref={localRef} autoPlay muted style={{ width: '80%' }} />
 
