@@ -96,6 +96,9 @@ io.on('connection', (socket) => {
         //console.log("A user is attempting to join room",roomID)
         //console.log("Room size: ", room.size)
         if (room){ // room exists
+            if (socket.id in room){
+                socket.emit("join-confirmation", {status: "failed", message: "Can't join your own room again...", id: roomID})
+            }
             if (room.size >= 2){
                 console.log(`User is trying to join room ${roomID} but it is full!`)
                 socket.emit('join-confirmation', {status: "full", message:"Room is full!",id: roomID})
