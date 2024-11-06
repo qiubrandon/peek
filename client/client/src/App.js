@@ -7,7 +7,7 @@ import FullscreenIcon from '@mui/icons-material/Fullscreen';
 
 
 const url = process.env.REACT_APP_EC2 || "http://localhost:8080";
-console.log("URL", url)
+//console.log("URL", url)
 const socket = io.connect(url); // Connect to the server
 const ICE_SERVERS = JSON.parse(process.env.REACT_APP_ICESERVERS)
 //const ICE_SERVERS = 
@@ -41,7 +41,7 @@ function App() {
       pc.onicecandidate = (event) => {
         if (event.candidate) {
          // console.log("Received ICE candidate!")
-          console.log("ICE CANDIDATE ROOMID",roomIDRef.current)
+          //console.log("ICE CANDIDATE ROOMID",roomIDRef.current)
           socket.emit('ice-candidate', {candidate: event.candidate, roomID: roomIDRef.current}); // send candidate to signaling server
         }
       }
