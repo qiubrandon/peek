@@ -30,7 +30,8 @@ const io = socketIo(server, {
         methods: ["GET", "POST"],
         allowedHeaders: ["my-custom-header"],
         credentials: true
-    }
+    },
+    transports: ['websocket', 'polling'],
 });
 
 async function genID() {
