@@ -1,20 +1,27 @@
 const express = require('express');
-const http = require('http');
+const http = require('https');
 const socketIo = require('socket.io');
 const path = require('path');
 const cors = require('cors')
+const fs = require('fs');
 require('dotenv').config();  // Load environment variables
 
 // const {nanoid} = require('nanoid');
 
 const app = express();
-const server = http.createServer(app);
+const options = {
+    key: fs.readFileSync('/etc/letsencrypt/live/api.peek.lol/privkey.pem'),
+    cert: fs.readFileSync('/etc/letsencrypt/live/api.peek.lol/fullchain.pem'),
+    secureOptions: require('constants').SSL_OP_NO_TLSv1 | require('constants').SSL_OP_NO_TLSv1_1,
+};
+const server = http.createServer(options, app);
+
 
 // FOR DEVELOPMENT PURPOSES ONLY
 //const url = process.env.TUNNEL_URL
 const idAPI = process.env.API_URL
 const allowedOrigins = process.env.NODE_ENV === 'production' ? 
-    [url] : 
+    ["https://peek.lol"] : 
     ["http://localhost:3000"];
 
 const io = socketIo(server, {
