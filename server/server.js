@@ -21,7 +21,7 @@ const server = http.createServer(options, app);
 //const url = process.env.TUNNEL_URL
 const idAPI = process.env.API_URL
 const allowedOrigins = process.env.NODE_ENV === 'production' ? 
-    ["https://peek.lol"] : 
+    ["https://peek.lol", "https://www.peek.lol"] : 
     ["http://localhost:3000"];
 
 const io = socketIo(server, {
