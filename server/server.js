@@ -26,7 +26,7 @@ const allowedOrigins = process.env.NODE_ENV === 'production' ?
 
 const io = socketIo(server, {
     cors: {
-        origin: allowedOrigins, // Allow requests from this origin
+        origin: "https://wwww.peek.lol", // Allow requests from this origin
         methods: ["GET", "POST"],
         allowedHeaders: ["my-custom-header"],
         credentials: true
