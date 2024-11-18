@@ -153,6 +153,10 @@ io.on('connection', (socket) => {
     // });
 });
 
+app.get('/', (req, res) => {
+    res.send('This is Peeks API! Go to https://peek.lol for screensharing!');
+});
+
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
