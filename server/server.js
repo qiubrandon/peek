@@ -26,7 +26,7 @@ const allowedOrigins = process.env.NODE_ENV === 'production' ?
 
 const io = socketIo(server, {
     cors: {
-        origin: "https://wwww.peek.lol", // Allow requests from this origin
+        origin: "https://www.peek.lol", // Allow requests from this origin
         methods: ["GET", "POST"],
         allowedHeaders: ["my-custom-header"],
         credentials: true
@@ -148,6 +148,11 @@ io.on('connection', (socket) => {
         leaveAll(roomID);
         console.log("Cleaning user",socket.id)
     })
+
+    // socket.on('heartbeat', ()=>{
+    //     console.log("Heartbeat from user",socket.id)
+    //     socket.to(data.roomID).emit('heartbeat-a')
+    // })
 
     // socket.on('screen-share', (data) => {
     //     socket.broadcast.emit('screen-share', data); // EMITS TO ALL (EXCEPT SENDER)
