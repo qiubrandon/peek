@@ -1,29 +1,37 @@
 const express = require('express');
-const http = require('http');
+const http = require('https');
 const socketIo = require('socket.io');
 const path = require('path');
 const cors = require('cors')
+const fs = require('fs');
 require('dotenv').config();  // Load environment variables
 
 // const {nanoid} = require('nanoid');
 
 const app = express();
-const server = http.createServer(app);
+const options = {
+    key: fs.readFileSync('/etc/letsencrypt/live/api.peek.lol/privkey.pem'),
+    cert: fs.readFileSync('/etc/letsencrypt/live/api.peek.lol/fullchain.pem'),
+    secureOptions: require('constants').SSL_OP_NO_TLSv1 | require('constants').SSL_OP_NO_TLSv1_1,
+};
+const server = http.createServer(options, app);
+
 
 // FOR DEVELOPMENT PURPOSES ONLY
 //const url = process.env.TUNNEL_URL
 const idAPI = process.env.API_URL
 const allowedOrigins = process.env.NODE_ENV === 'production' ? 
-    [url] : 
+    ["https://peek.lol", "https://www.peek.lol"] : 
     ["http://localhost:3000"];
 
 const io = socketIo(server, {
     cors: {
-        origin: allowedOrigins, // Allow requests from this origin
+        origin: "https://www.peek.lol", // Allow requests from this origin
         methods: ["GET", "POST"],
         allowedHeaders: ["my-custom-header"],
         credentials: true
-    }
+    },
+    transports: ['websocket', 'polling'],
 });
 
 async function genID() {
@@ -141,12 +149,21 @@ io.on('connection', (socket) => {
         console.log("Cleaning user",socket.id)
     })
 
+    // socket.on('heartbeat', ()=>{
+    //     console.log("Heartbeat from user",socket.id)
+    //     socket.to(data.roomID).emit('heartbeat-a')
+    // })
+
     // socket.on('screen-share', (data) => {
     //     socket.broadcast.emit('screen-share', data); // EMITS TO ALL (EXCEPT SENDER)
     // });
 });
 
+app.get('/', (req, res) => {
+    res.send('This is Peeks API! Go to https://peek.lol for screensharing!');
+});
+
 const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+server.listen(PORT, '127.0.0.1',() => {
+    console.log(`Server is running on port https://127.0.0.1:${PORT}`);
 });

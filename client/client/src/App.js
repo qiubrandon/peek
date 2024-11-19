@@ -305,7 +305,7 @@ const enterFullscreen = (videoElement) => {
         })
       }
       else {
-        console.log("Stream is not active.")
+        console.log("Stream is not active...")
         toast.info("Stream is not active...")
         return;
       }
@@ -344,6 +344,7 @@ const enterFullscreen = (videoElement) => {
     }
 
     const createRoom = () => {
+      //socket.emit('heartbeat');
       stopCapture();
       socket.emit('create-room');
     }
