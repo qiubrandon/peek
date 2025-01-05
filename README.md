@@ -5,6 +5,8 @@ Peek is a lightweight screen-sharing application that is designed for users to s
 1. Room live-chat for communication
 2. Rate-limiting on room-creation
 
+My biggest plan is to set up my own routing, by using cloud providers, and the ICE framework to have my own "TURN" network of sorts. Currently using Twilio's Network Traversal Service, but that is $$$.
+
 ## **Features**
 - 📡 **Peer-to-Peer (P2P) Connections**: Direct communication between users using WebRTC.
 - 🖥️ **Screensharing**: Share your screen in real-time with minimal latency.
