@@ -8,19 +8,19 @@ Peek is a lightweight screen-sharing application that is designed for users to s
 My biggest plan is to set up my own routing, by using cloud providers, and the ICE framework to have my own "TURN" network of sorts. Currently using Twilio's Network Traversal Service, but that is $$$.
 
 ## **Features**
-- 📡 **Peer-to-Peer (P2P) Connections**: Direct communication between users using WebRTC.
-- 🖥️ **Screensharing**: Share your screen in real-time with minimal latency.
-- 🔒 **Secure Communication**: Encrypted data streams ensure privacy.
-- 🌐 **Web-Based**: No installation required – accessible directly via the browser.
-- 🚀 **Responsive Design**: Optimized for desktop and mobile devices.
+-  **Peer-to-Peer (P2P) Connections**: Direct communication between users using WebRTC
+-  **Screensharing**: Share your screen in real-time with minimal latency
+-  **Secure Communication**: Encrypted data streams ensure privacy
+-  **Web-Based**: No installation required – accessible directly via the browser
+-  **Responsive Design**: Optimized for desktop and mobile devices
 
 ---
 
 ## **How It Works**
-1. **Create a Room**: A user generates a unique room ID.
-2. **Share the Room ID**: Share the generated room ID with others.
-3. **Join the Room**: Participants enter the room ID to start the screensharing session.
-4. **Collaborate**: Enjoy real-time, secure screensharing.
+1. **Create a Room**: A user generates a unique room ID
+2. **Share the Room ID**: Share the generated room ID with others
+3. **Join the Room**: Participants enter the room ID to start the screensharing session
+4. **Collaborate**: Enjoy real-time, secure screensharing
 
 ---
 
